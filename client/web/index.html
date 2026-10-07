@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CardVault</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page: #E9EDF2;
+  --surface: #FFFFFF;
+  --ink: #17223B;
+  --ink-2: #4B5772;
+  --line: #C9D1DC;
+  --chip: #C8A44A;
+  --ok: #1B7550;
+  --ok-bg: #E3F2EA;
+  --bad: #A8271E;
+  --bad-bg: #FBE7E5;
+  --focus: #2E59D1;
+  --card-pvc: #FBFCFD;
+  --font: "Schibsted Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #10172A; --surface: #18213A; --ink: #E8ECF4; --ink-2: #A4AEC4; --line: #2E3A57;
+    --ok: #57C795; --ok-bg: #143327; --bad: #F08A80; --bad-bg: #3A1B1A; --focus: #8EA9FF;
+  }
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 16px/1.5 var(--font); font-variant-numeric: tabular-nums;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+header {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  max-width: 1120px; margin: 0 auto; padding: 20px 24px;
+}
+.brand { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; margin: 0; }
+.net { font-size: 14px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.wallet { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addr { font-size: 14px; color: var(--ink-2); }
+
+.btn {
+  border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 700;
+  background: var(--ink); color: var(--page);
+}
+.btn.quiet { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+main {
+  display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 40px;
+  max-width: 1120px; margin: 0 auto; padding: 8px 24px 64px;
+}
+@media (max-width: 860px) { main { grid-template-columns: 1fr; gap: 32px; } }
+
+/* ---------- the physical card ---------- */
+.card-col { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); align-self: start; }
+@media (max-width: 860px) { .card-col { position: static; } }
+.smartcard {
+  position: relative; aspect-ratio: 85.6 / 53.98; width: 100%; border-radius: 4.5% / 7%;
+  background: var(--card-pvc); color: #17223B; overflow: hidden;
+  box-shadow: 0 1px 0 rgba(23,34,59,.08), 0 18px 40px -18px rgba(23,34,59,.45);
+}
+.smartcard svg.guilloche { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .55; }
+.chip {
+  position: absolute; left: 9%; top: 34%; width: 15%; aspect-ratio: 1.25; border-radius: 14%;
+  background: linear-gradient(135deg, #E9CF7E, var(--chip) 55%, #A9862F);
+  box-shadow: inset 0 0 0 1px rgba(90,64,10,.35);
+}
+.chip::before, .chip::after { content: ""; position: absolute; background: rgba(90,64,10,.45); }
+.chip::before { left: 0; right: 0; top: 50%; height: 1px; }
+.chip::after { top: 0; bottom: 0; left: 38%; width: 1px; box-shadow: 9px 0 0 rgba(90,64,10,.45); }
+.smartcard.signing .chip { animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: inset 0 0 0 1px rgba(90,64,10,.35), 0 0 0 6px rgba(200,164,74,.35); } }
+@media (prefers-reduced-motion: reduce) { .smartcard.signing .chip { animation: none; outline: 3px solid var(--chip); } }
+.card-name { position: absolute; left: 9%; top: 11%; font-weight: 800; font-size: clamp(14px, 4.2cqw, 20px); letter-spacing: -0.01em; }
+.smartcard { container-type: inline-size; }
+.card-role { position: absolute; right: 8%; top: 12%; font-size: clamp(11px, 3cqw, 14px); font-weight: 500; }
+.card-key { position: absolute; left: 9%; bottom: 13%; font-size: clamp(11px, 3.2cqw, 15px); letter-spacing: .04em; }
+.card-nfc { position: absolute; left: 28%; top: 37%; width: 7%; color: #17223B; opacity: .6; }
+
+.card-meta { margin: 18px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 15px; }
+.card-meta dt { color: var(--ink-2); }
+.card-meta dd { margin: 0; }
+.role-switch { display: flex; gap: 6px; margin-top: 18px; flex-wrap: wrap; }
+.role-switch .btn { white-space: nowrap; padding: 8px 12px; }
+.role-switch button[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.hint { font-size: 14px; color: var(--ink-2); margin: 10px 0 0; }
+
+/* ---------- right column ---------- */
+section { margin-bottom: 40px; }
+h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.lead { margin: 0 0 16px; color: var(--ink-2); max-width: 62ch; }
+.vault {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px;
+}
+.balance { font-size: clamp(36px, 6vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin: 0; }
+.balance small { font-size: .45em; font-weight: 500; color: var(--ink-2); letter-spacing: 0; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 16px 0 0; font-size: 15px; }
+.facts dt { color: var(--ink-2); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+
+form.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); flex: 1 1 160px; }
+label.field.amount { flex: 0 1 130px; }
+input[type="text"], input[type="number"], input[type="password"] {
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); width: 100%;
+}
+
+.attacks { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.attacks li {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center;
+  border-left: 3px solid var(--bad); padding: 6px 0 6px 14px;
+}
+.attacks strong { display: block; }
+.attacks span { color: var(--ink-2); font-size: 14px; }
+
+ol.log { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+ol.log li { padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+ol.log li.ok { background: var(--ok-bg); border-color: transparent; }
+ol.log li.blocked { background: var(--ok-bg); border-color: transparent; box-shadow: inset 3px 0 0 var(--ok); }
+ol.log li.error { background: var(--bad-bg); border-color: transparent; }
+ol.log time { color: var(--ink-2); font-size: 13px; margin-right: 8px; }
+ol.log a { color: inherit; margin-left: 6px; }
+.empty { color: var(--ink-2); }
+
+dialog { border: 0; border-radius: 16px; padding: 24px; width: min(380px, 92vw); background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgba(10,15,30,.5); }
+dialog h3 { margin: 0 0 6px; font-size: 19px; }
+dialog p { margin: 0 0 14px; color: var(--ink-2); }
+dialog .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1 class="brand">CardVault</h1>
+  <span class="net" id="net">connecting…</span>
+  <div class="wallet">
+    <span class="addr" id="walletAddr"></span>
+    <select id="devSelect" hidden aria-label="Test wallet"></select>
+    <button class="btn" id="connectBtn">Connect Phantom</button>
+  </div>
+</header>
+
+<main>
+  <aside class="card-col" aria-label="Card">
+    <div class="smartcard" id="smartcard">
+      <svg class="guilloche" viewBox="0 0 400 252" preserveAspectRatio="none" aria-hidden="true" id="guilloche"></svg>
+      <div class="card-name">CardVault</div>
+      <div class="card-role" id="cardRole">Main card</div>
+      <div class="chip"></div>
+      <svg class="card-nfc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 8a6 6 0 0 1 0 8"/><path d="M10 5a10 10 0 0 1 0 14"/><path d="M14 2a14 14 0 0 1 0 20"/>
+      </svg>
+      <div class="card-key" id="cardKey">No card read yet</div>
+    </div>
+    <div class="role-switch" role="group" aria-label="Which card">
+      <button class="btn quiet" id="roleMain" aria-pressed="true">Main card</button>
+      <button class="btn quiet" id="roleRecovery" aria-pressed="false">Recovery card</button>
+      <button class="btn quiet" id="readCard">Read card</button>
+    </div>
+    <dl class="card-meta" id="cardMeta" hidden>
+      <dt>Limit per payment</dt><dd id="cardLimit"></dd>
+      <dt>PIN tries left</dt><dd id="cardTries"></dd>
+      <dt>In this vault</dt><dd id="cardMatch"></dd>
+    </dl>
+    <p class="hint" id="cardHint">The private key is created on the card and never leaves it.</p>
+  </aside>
+
+  <div>
+    <section id="noWallet">
+      <h2>Your SOL, locked to a physical card</h2>
+      <p class="lead">Money in a CardVault moves only when your wallet and your card both sign. Malware that steals your wallet key gets nothing without the card and its PIN.</p>
+      <p class="lead">Connect Phantom to start. Use devnet: Phantom settings, Developer settings, Testnet mode.</p>
+    </section>
+
+    <section id="createSection" hidden>
+      <h2>Create your vault</h2>
+      <p class="lead">You need two cards: the main card for payments and a recovery card kept somewhere safe. The recovery card can move the vault to a new wallet if your wallet key is lost or stolen.</p>
+      <form class="row" id="createForm">
+        <label class="field">Recovery card public key
+          <input type="text" id="recoveryKey" placeholder="Read the recovery card" autocomplete="off" spellcheck="false">
+        </label>
+        <button type="button" class="btn quiet" id="readRecovery">Read recovery card</button>
+        <button class="btn" id="createBtn">Create vault</button>
+      </form>
+      <p class="hint" id="createHint"></p>
+    </section>
+
+    <section id="vaultSection" hidden>
+      <div class="vault">
+        <p class="balance" id="balance">0 <small>SOL</small></p>
+        <dl class="facts">
+          <dt>Vault</dt><dd id="vaultAddr"></dd>
+          <dt>Owner wallet</dt><dd id="vaultOwner"></dd>
+          <dt>Payments made</dt><dd id="vaultNonce"></dd>
+        </dl>
+      </div>
+    </section>
+
+    <section id="sendSection" hidden>
+      <h2>Send SOL</h2>
+      <p class="lead">Your wallet signs the transaction, the card signs the amount and recipient after you enter the PIN.</p>
+      <form class="row" id="sendForm">
+        <label class="field">Recipient
+          <input type="text" id="sendTo" required autocomplete="off" spellcheck="false" placeholder="Solana address">
+        </label>
+        <label class="field amount">Amount (SOL)
+          <input type="number" id="sendAmount" required min="0.000001" step="any" value="0.1">
+        </label>
+        <button class="btn">Send with card</button>
+      </form>
+    </section>
+
+    <section id="depositSection" hidden>
+      <h2>Add SOL</h2>
+      <form class="row" id="depositForm">
+        <label class="field amount">Amount (SOL)
+          <input type="number" id="depositAmount" required min="0.000001" step="any" value="1">
+        </label>
+        <button class="btn quiet">Add to vault</button>
+      </form>
+    </section>
+
+    <section id="attackSection" hidden>
+      <h2>Try to break it</h2>
+      <p class="lead">Each button plays malware that already has your wallet key. The transaction is sent for real and the vault program rejects it.</p>
+      <ul class="attacks">
+        <li><div><strong>Withdraw with the stolen wallet key only</strong><span>No card involved.</span></div>
+          <button class="btn quiet" data-attack="no-card">Run attack</button></li>
+        <li><div><strong>Raise the amount after you approve</strong><span>You approve 0.01 SOL on the card, the transaction asks for 0.5 SOL.</span></div>
+          <button class="btn quiet" data-attack="swap-amount">Run attack</button></li>
+        <li><div><strong>Swap the recipient after you approve</strong><span>You approve a payment to the recipient above, the transaction pays someone else.</span></div>
+          <button class="btn quiet" data-attack="swap-recipient">Run attack</button></li>
+      </ul>
+    </section>
+
+    <section id="recoverSection" hidden>
+      <h2>Lost your wallet key?</h2>
+      <p class="lead">Connect the new wallet, enter the vault address and use the recovery card. The vault moves to the new wallet and the old key stops working.</p>
+      <form class="row" id="recoverForm">
+        <label class="field">Vault address
+          <input type="text" id="recoverVault" required autocomplete="off" spellcheck="false">
+        </label>
+        <button class="btn quiet">Move vault to this wallet</button>
+      </form>
+    </section>
+
+    <section id="logSection">
+      <h2>Activity</h2>
+      <ol class="log" id="log"><li class="empty">Nothing yet.</li></ol>
+    </section>
+  </div>
+</main>
+
+<dialog id="pinDialog">
+  <form method="dialog" id="pinForm">
+    <h3 id="pinTitle">Enter card PIN</h3>
+    <p id="pinText">Keep the card on the reader.</p>
+    <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" minlength="4" maxlength="8" required aria-label="PIN">
+    <div class="actions">
+      <button type="button" class="btn quiet" id="pinCancel">Cancel</button>
+      <button class="btn" id="pinOk">Sign with card</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/web3.js"></script>
+<script>
+const { Transaction } = solanaWeb3;
+const $ = (id) => document.getElementById(id);
+const LAMPORTS = 1e9;
+const state = { config: null, wallet: null, walletKind: null, vault: null, role: "main", cards: {} };
+
+// ---------- decoration: guilloche lines on the card (security-print pattern) ----------
+(function guilloche() {
+  const svg = $("guilloche"); let paths = "";
+  for (let k = 0; k < 14; k++) {
+    let d = "";
+    for (let x = 0; x <= 400; x += 4) {
+      const y = 200 - k * 9 + Math.sin(x / 31 + k * 0.45) * 14 + Math.sin(x / 11 + k) * 3;
+      d += (x ? "L" : "M") + x + " " + y.toFixed(1);
+    }
+    paths += `<path d="${d}" fill="none" stroke="#2C4A8A" stroke-opacity="${0.10 + (k % 3) * 0.04}" stroke-width="0.8"/>`;
+  }
+  svg.innerHTML = paths;
+})();
+
+// ---------- plumbing ----------
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await res.json().catch(() => ({ error: `Bridge error ${res.status}` }));
+  if (!res.ok) throw new Error(data.error || `Bridge error ${res.status}`);
+  return data;
+}
+const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const bytesToB64 = (bytes) => { let s = ""; bytes.forEach((b) => (s += String.fromCharCode(b))); return btoa(s); };
+const short = (a) => (a ? a.slice(0, 4) + "…" + a.slice(-4) : "");
+const sol = (lamports) => (Number(lamports) / LAMPORTS).toLocaleString("en", { maximumFractionDigits: 4 });
+
+function explorer(sig) {
+  const c = state.config?.cluster;
+  if (c === "devnet") return `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+  return `https://explorer.solana.com/tx/${sig}?cluster=custom&customUrl=${encodeURIComponent(state.config.rpc)}`;
+}
+
+function log(kind, text, sig) {
+  const ol = $("log");
+  ol.querySelector(".empty")?.remove();
+  const li = document.createElement("li");
+  li.className = kind;
+  const t = document.createElement("time");
+  t.textContent = new Date().toLocaleTimeString();
+  li.append(t, document.createTextNode(text));
+  if (sig) {
+    const a = document.createElement("a");
+    a.href = explorer(sig); a.target = "_blank"; a.rel = "noopener"; a.textContent = "View transaction";
+    li.append(a);
+  }
+  ol.prepend(li);
+}
+
+/** Wallet signs, bridge submits (so failures come back with readable reasons). */
+async function signAndSend(txB64) {
+  let signedB64;
+  if (state.walletKind === "phantom") {
+    const provider = getPhantom();
+    const tx = Transaction.from(b64ToBytes(txB64));
+    const signed = await provider.signTransaction(tx);
+    signedB64 = bytesToB64(signed.serialize({ requireAllSignatures: false }));
+  } else {
+    signedB64 = (await api("/api/dev/sign", { wallet: state.wallet, tx: txB64 })).tx;
+  }
+  return (await api("/api/send", { tx: signedB64 })).signature;
+}
+
+function askPin(title, text) {
+  const dlg = $("pinDialog");
+  $("pinTitle").textContent = title; $("pinText").textContent = text; $("pinInput").value = "";
+  dlg.showModal(); $("pinInput").focus();
+  return new Promise((resolve) => {
+    const done = (v) => { dlg.close(); $("pinForm").onsubmit = null; $("pinCancel").onclick = null; resolve(v); };
+    $("pinForm").onsubmit = (e) => { e.preventDefault(); done($("pinInput").value); };
+    $("pinCancel").onclick = () => done(null);
+  });
+}
+
+async function withCardSigning(fn) {
+  $("smartcard").classList.add("signing");
+  try { return await fn(); } finally { $("smartcard").classList.remove("signing"); }
+}
+
+async function busy(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) {
+    const msg = e.message || String(e);
+    // The card refusing an over-limit payment is the protection working, not a failure.
+    log(/^Card refused/.test(msg) ? "blocked" : "error", msg);
+  } finally { btn.disabled = false; }
+}
+
+// ---------- wallet ----------
+function getPhantom() {
+  const p = window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+  return p;
+}
+
+async function connectPhantom() {
+  const p = getPhantom();
+  if (!p) { log("error", "Phantom is not installed in this browser. Install it from phantom.app, or start the bridge with DEV_WALLETS for test wallets."); return; }
+  const r = await p.connect();
+  setWallet(r.publicKey.toString(), "phantom");
+  p.on?.("accountChanged", (pk) => pk && setWallet(pk.toString(), "phantom"));
+}
+
+function setWallet(pubkey, kind) {
+  state.wallet = pubkey; state.walletKind = kind;
+  $("walletAddr").textContent = (kind === "dev" ? "Test wallet " : "Phantom ") + short(pubkey);
+  $("connectBtn").textContent = kind === "phantom" ? "Connected" : "Connect Phantom";
+  refreshVault();
+}
+
+// ---------- card ----------
+async function readCard(role = state.role) {
+  const btn = $("readCard");
+  btn.disabled = true;
+  try {
+    const c = await api(`/api/card?role=${role}`);
+    state.cards[role] = c;
+    showCard(role);
+    return c;
+  } catch (e) {
+    $("cardKey").textContent = "No card read";
+    $("cardMeta").hidden = true;
+    $("cardHint").textContent = e.message;
+    throw e;
+  } finally { btn.disabled = false; }
+}
+
+function showCard(role) {
+  const c = state.cards[role];
+  $("cardRole").textContent = role === "main" ? "Main card" : "Recovery card";
+  $("roleMain").setAttribute("aria-pressed", role === "main");
+  $("roleRecovery").setAttribute("aria-pressed", role === "recovery");
+  if (!c) { $("cardKey").textContent = "No card read yet"; $("cardMeta").hidden = true; return; }
+  $("cardKey").textContent = c.pubkey.slice(0, 8).toUpperCase() + " " + c.pubkey.slice(8, 16).toUpperCase() + " … " + c.pubkey.slice(-6).toUpperCase();
+  $("cardLimit").textContent = sol(c.limit) + " SOL";
+  $("cardTries").textContent = c.pinTries === 0 ? "Blocked" : c.pinTries;
+  const v = state.vault;
+  $("cardMatch").textContent = !v ? "No vault loaded" : c.pubkey === v.card ? "Main card of this vault"
+    : c.pubkey === v.recoveryCard ? "Recovery card of this vault" : "Not linked to this vault";
+  $("cardMeta").hidden = false;
+  $("cardHint").textContent = "The private key is created on the card and never leaves it.";
+}
+
+function switchRole(role) {
+  state.role = role;
+  showCard(role);
+  if (state.config?.sameReader) $("cardHint").textContent = `Put the ${role} card on the reader, then press Read card.`;
+}
+
+// ---------- vault ----------
+async function refreshVault(address) {
+  if (!state.wallet) return;
+  try {
+    if (address) state.vault = await api(`/api/vault?address=${address}`);
+    else {
+      const list = await api(`/api/vaults?wallet=${state.wallet}`);
+      state.vault = list.find((v) => v.owner === state.wallet) ?? null;
+    }
+  } catch (e) { log("error", e.message); }
+  render();
+}
+
+function render() {
+  const v = state.vault, connected = !!state.wallet, isOwner = v && v.owner === state.wallet;
+  $("noWallet").hidden = connected;
+  $("createSection").hidden = !connected || !!v;
+  $("vaultSection").hidden = !v;
+  $("sendSection").hidden = !isOwner;
+  $("depositSection").hidden = !v;
+  $("attackSection").hidden = !isOwner;
+  $("recoverSection").hidden = !connected || isOwner;
+  if (v) {
+    $("balance").innerHTML = `${sol(v.balance)} <small>SOL</small>`;
+    $("vaultAddr").textContent = v.address;
+    $("vaultOwner").textContent = v.owner + (isOwner ? " (this wallet)" : "");
+    $("vaultNonce").textContent = v.nonce;
+    localStorage.setItem("cardvault:last", v.address);
+  }
+  if (!$("recoverVault").value) $("recoverVault").value = localStorage.getItem("cardvault:last") ?? "";
+  showCard(state.role);
+}
+
+// ---------- actions ----------
+$("connectBtn").onclick = () => busy($("connectBtn"), connectPhantom);
+$("devSelect").onchange = (e) => e.target.value && setWallet(e.target.value, "dev");
+$("roleMain").onclick = () => switchRole("main");
+$("roleRecovery").onclick = () => switchRole("recovery");
+$("readCard").onclick = () => readCard().catch(() => {});
+
+$("readRecovery").onclick = () => busy($("readRecovery"), async () => {
+  if (state.config.sameReader) $("createHint").textContent = "Reading the card on the reader as the recovery card.";
+  const c = await readCard("recovery");
+  $("recoveryKey").value = c.pubkey;
+  $("createHint").textContent = state.config.sameReader
+    ? "Recovery card read. Now put the main card on the reader and press Create vault."
+    : "Recovery card read.";
+});
+
+$("createForm").onsubmit = (e) => { e.preventDefault(); busy($("createBtn"), async () => {
+  const { tx, vault } = await api("/api/tx/init", { owner: state.wallet, recoveryPubkey: $("recoveryKey").value });
+  const sig = await signAndSend(tx);
+  log("ok", `Vault created and linked to both cards.`, sig);
+  await refreshVault(vault);
+  readCard("main").catch(() => {});
+}); };
+
+$("depositForm").onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => {
+  const amount = $("depositAmount").value;
+  const { tx } = await api("/api/tx/deposit", { wallet: state.wallet, vault: state.vault.address, sol: amount });
+  const sig = await signAndSend(tx);
+  log("ok", `Added ${amount} SOL to the vault.`, sig);
+  await refreshVault(state.vault.address);
+}); };
+
+$("sendForm").onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => {
+  const to = $("sendTo").value.trim(), amount = $("sendAmount").value;
+  const pin = await askPin("Approve payment on card", `Send ${amount} SOL to ${short(to)}. Keep the main card on the reader.`);
+  if (pin === null) return;
+  const { tx } = await withCardSigning(() =>
+    api("/api/tx/withdraw", { wallet: state.wallet, vault: state.vault.address, recipient: to, sol: amount, pin }));
+  const sig = await signAndSend(tx);
+  log("ok", `Sent ${amount} SOL to ${short(to)}, signed by wallet and card.`, sig);
+  await refreshVault(state.vault.address);
+}); };
+
+document.querySelectorAll("[data-attack]").forEach((btn) => {
+  btn.onclick = () => busy(btn, async () => {
+    const kind = btn.dataset.attack;
+    let pin = "";
+    if (kind !== "no-card") {
+      pin = await askPin("Approve 0.01 SOL on card", "This is the payment you think you are making. The malware will change it.");
+      if (pin === null) return;
+    }
+    const recipient = $("sendTo").value.trim() || undefined;
+    const { tx } = await withCardSigning(() =>
+      api("/api/tx/attack", { wallet: state.wallet, vault: state.vault.address, kind, pin, recipient }));
+    try {
+      const sig = await signAndSend(tx);
+      log("error", "The attack transaction went through. This should not happen.", sig);
+    } catch (err) {
+      log("blocked", err.message);
+    }
+    await refreshVault(state.vault.address);
+  });
+});
+
+$("recoverForm").onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => {
+  const vault = $("recoverVault").value.trim();
+  const pin = await askPin("Recovery card PIN", "Put the recovery card on the reader. The vault will move to the wallet connected now.");
+  if (pin === null) return;
+  const { tx } = await withCardSigning(() => api("/api/tx/recover", { wallet: state.wallet, vault, pin }));
+  const sig = await signAndSend(tx);
+  log("ok", `Vault moved to this wallet. The old wallet key no longer works.`, sig);
+  await refreshVault(vault);
+}); };
+
+// ---------- start ----------
+(async () => {
+  try {
+    state.config = await api("/api/config");
+    $("net").textContent = state.config.cluster === "devnet" ? "Solana devnet" : state.config.cluster === "local" ? "Local validator" : "Custom network";
+    if (state.config.devWallets.length) {
+      const sel = $("devSelect");
+      sel.innerHTML = `<option value="">Test wallet…</option>` +
+        state.config.devWallets.map((w, i) => `<option value="${w}">Test wallet ${i + 1} (${short(w)})</option>`).join("");
+      sel.hidden = false;
+    }
+    if (state.config.sameReader) $("cardHint").textContent = "One reader: swap cards when asked.";
+  } catch (e) {
+    $("net").textContent = "Bridge offline";
+    log("error", "Cannot reach the bridge. Start it with: npm run bridge");
+  }
+  render();
+})();
+</script>
+</body>
+</html>

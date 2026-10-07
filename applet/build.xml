@@ -1,0 +1,14 @@
+<project name="cardvault" default="cap">
+  <!-- Download ant-javacard.jar from github.com/martinpaljak/ant-javacard/releases
+       and the SDKs: git clone https://github.com/martinpaljak/oracle_javacard_sdks sdks -->
+  <taskdef name="javacard" classname="pro.javacard.ant.JavaCard" classpath="ant-javacard.jar"/>
+  <target name="cap">
+    <!-- SDK 3.0.5u4 builds a CAP compatible with Java Card 3.0.4 cards (JCOP3) -->
+    <javacard jckit="sdks/jc305u4_kit">
+      <cap targetsdk="sdks/jc304_kit" aid="A000000BEEF0"
+           output="build/cardvault.cap" sources="src" version="1.0">
+        <applet class="cardvault.CardVaultApplet" aid="A000000BEEF00101"/>
+      </cap>
+    </javacard>
+  </target>
+</project>

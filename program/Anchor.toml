@@ -1,0 +1,13 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+card_vault = "F2G3Mh1mBGSCaoZqCpV4Tqj95SpUQa2R96DmjX3uMKQ4"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"

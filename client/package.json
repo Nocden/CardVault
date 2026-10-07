@@ -1,0 +1,22 @@
+{
+  "name": "card-vault-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "test": "tsx src/selftest.ts",
+    "typecheck": "tsc --noEmit",
+    "attacks": "tsx src/attacks.ts",
+    "bridge": "tsx src/bridge.ts"
+  },
+  "dependencies": {
+    "@pokusew/pcsclite": "^0.6.0",
+    "@solana/web3.js": "^1.98.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
